@@ -76,6 +76,7 @@ practiceFolder   = ['./phases/practice/'];
 studyFolder      = ['./phases/study/'];
 testFolder       = ['./phases/test/'];
 resultsFolder    = ['./results/'];
+edfFolder        = [resultsFolder '/edf/'];
 resultFilePrefix = 'OcularMotorExperiment';
 % define where to store our participant's results
 outputFilename   = [resultsFolder resultFilePrefix sprintf(['_%i.%s'], subId, 'dat') ];
@@ -127,24 +128,28 @@ el=EyelinkInitDefaults(w);
 % Disable key output to Matlab window:
 ListenChar(2);
 
+% ----------------
+% EYELINK DUMMY MODE
 % you can init(ialize) in dummy mode when eyelink is not available
-% EyelinkInit(1,1)
+%EyelinkInit(1,1)
+%-----------------
+
+%-------------------
+% EYELINK FOR REAL MODE
+
 if ~EyelinkInit(0, 1)
     fprintf('Eyelink Init aborted.\n');
     cleanup;  % cleanup function
     return;
 end
 
+%-------------------
+
 [v, vs]=Eyelink('GetTrackerVersion');
 fprintf('Running experiment on a ''%s'' tracker.\n', vs );
 
 % make sure that we get gaze data from the Eyelink
 Eyelink('Command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
-
-% open file to record data to
-disp('opening demo file')
-edfFile='demo.edf';
-Eyelink('Openfile', edfFile);
 
 % STEP 4
 % Calibrate the eye tracker
@@ -154,19 +159,6 @@ EyelinkDoTrackerSetup(el);
 % do a final check of calibration using driftcorrection
 disp('do drift correction')
 EyelinkDoDriftCorrection(el);
-
-% STEP 5
-% start recording eye position
-disp('start recording')
-Eyelink('StartRecording');
-% record a few samples before we actually start displaying
-WaitSecs(0.1);
-% mark zero-plot time in data file
-disp('sync time')
-Eyelink('Message', 'SYNCTIME');
-eye_used = -1;
-
-%---------- EYELINK ------------
 
 % This makes white background of images blend
 % good explanation here: http://www.machwerx.com/2009/02/11/glblendfunc/
@@ -199,13 +191,33 @@ for phaseNum=1:length(phaseFolders)
     %START TRIALS
     for trialNum=1:2 %length(trialFilenames)
         
+        % -------------------
+        % START EDF recording
+        % -------------------
+        
+        % open file to record data to
+        disp('opening demo file')
+        edfFile='lh_temp.edf';
+        Eyelink('Openfile', edfFile);
+        % start recording eye position
+        disp('start recording')
+        Eyelink('StartRecording');
+        % record a few samples before we actually start displaying
+        WaitSecs(0.1);
+        
         %Display the Fixation point
         disp('Fixation Point');
         [X,Y] = RectCenter(rect);
         FixCross = [X-1,Y-40,X+1,Y+40;X-40,Y-1,X+40,Y+1];
         Screen('FillRect', w, gray)
         Screen('FillRect', w, BLACK, FixCross');
+        
+        %%%%
         Screen('Flip', w);
+        % mark zero-plot time in data file
+        Eyelink('Message', 'SYNCTIME');
+        %%%%
+        
         WaitSecs(FIXATION_TIMEOUT);
         
         %Display the picture
@@ -272,40 +284,34 @@ for phaseNum=1:length(phaseFolders)
         %Wait for Researcher to press button
         disp('waiting for researcher...');
         waitForSerialInput(s, RESEARCHER_BUTTON);
-    end
-end
+        
+        % -------------------
+        % STOP EDF recording
+        % -------------------
+        Eyelink('StopRecording');
+        Eyelink('CloseFile');
 
-% -------------- EYELINK ----------
-% finish up: stop recording eye-movements,
-% close graphics window, close data file and shut down tracker
-Eyelink('StopRecording');
-Eyelink('CloseFile');
-% download data file
-try
-    fprintf('Receiving data file ''%s''\n', edfFile );
-    status=Eyelink('ReceiveFile');
-    if status > 0
-        fprintf('ReceiveFile status %d\n', status);
-    end
-    if 2==exist(edfFile, 'file')
-        moveFileTo = [resultsFolder resultFilePrefix sprintf(['_%i.%s'], subId, 'edf') ];
-        [status, message] = movefile(edfFile, moveFileTo);
-        if 1==status
-            error(message);
-        else
-            fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+        fprintf('Receiving data file ''%s''\n', edfFile );
+        status=Eyelink('ReceiveFile');
+        if status > 0
+            fprintf('ReceiveFile status %d\n', status);
+        end
+        if 2==exist(edfFile, 'file')
+            moveFileTo = [edfFolder resultFilePrefix sprintf(['_%i_%i_%i.%s'], subId, phaseNum, trailNum, 'edf') ];
+            [status, message] = movefile(edfFile, moveFileTo);
+            if 1==status
+                error(message);
+            else
+                fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+            end
         end
     end
-catch rdf
-    fprintf('Problem receiving data file ''%s''\n', edfFile );
-    rdf;
-end
 
+
+
+% CLEANUP
 Eyelink('Shutdown');
-ListenChar(0);
-%---------------- EYELINK ---------
-
-%properly close and delete serial interface object
+%ListenChar(0);
 Screen('CloseAll');
 ShowCursor;
 fclose('all');
