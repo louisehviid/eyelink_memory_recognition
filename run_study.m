@@ -1,3 +1,8 @@
+% Cleanup before we start just in case serial port or sychtoolbox have
+% crashed during development
+delete(instrfindall);
+sca;
+
 % note on stimulus preparation
 % psychtoolbox and matlab do not play well with indexed images
 % rgb pngs give the most consistent results
@@ -26,9 +31,10 @@ clc;
 %Display prompt to enter subjectID
 subId = str2num(promptForSubjectId());
 
-try
 % check for Opengl compatibility, abort otherwise:
 AssertOpenGL;
+
+try
 screens=Screen('Screens');
 screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
@@ -39,6 +45,9 @@ Screen('Preference', 'SkipSyncTests', 1);
 %full screen
 [w, rect] = Screen('OpenWindow', screenNumber, []);
 
+%turn on psychtoolbox sound
+InitializePsychSound;
+ 
 % Hide the mouse cursor:
 %HideCursor;
 
@@ -188,7 +197,9 @@ for phaseNum=1:length(phaseFolders)
     disp('waiting for researcher...');
     waitForSerialInput(s, RESEARCHER_BUTTON);
     
-    %START TRIALS
+    % START TRIALS
+    % For development we loop over 2 trails,
+    % for full study, replace "2" with "length(trialFilenames)"
     for trialNum=1:2 %length(trialFilenames)
         
         % -------------------
@@ -297,7 +308,7 @@ for phaseNum=1:length(phaseFolders)
             fprintf('ReceiveFile status %d\n', status);
         end
         if 2==exist(edfFile, 'file')
-            moveFileTo = [edfFolder resultFilePrefix sprintf(['_%i_%i_%i.%s'], subId, phaseNum, trailNum, 'edf') ];
+            moveFileTo = [edfFolder resultFilePrefix sprintf(['_%i_%i_%i.%s'], subId, phaseNum, trialNum, 'edf') ];
             [status, message] = movefile(edfFile, moveFileTo);
             if 1==status
                 error(message);
@@ -306,29 +317,30 @@ for phaseNum=1:length(phaseFolders)
             end
         end
     end
-
+end
 
 
 % CLEANUP
 Eyelink('Shutdown');
-%ListenChar(0);
+ListenChar(0);
 Screen('CloseAll');
 ShowCursor;
 fclose('all');
+
 fclose(s);
 delete(s);
 Priority(0);
 
-catch
+catch err
     Eyelink('Shutdown');
     ListenChar(0);
     Screen('CloseAll');
     ShowCursor;
     fclose('all');
-    %fclose(s);
     delete(s);
     Priority(0);
     
     % Output the error message that describes the error:
-    psychrethrow(psychlasterror);
+    throw(err);
+    %psychrethrow(err);
 end
