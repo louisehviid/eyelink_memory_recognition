@@ -46,7 +46,7 @@ Screen('Preference', 'SkipSyncTests', 1);
 [w, rect] = Screen('OpenWindow', screenNumber, []);
 
 %turn on psychtoolbox sound
-InitializePsychSound;
+pahandle = initBeep();
  
 % Hide the mouse cursor:
 %HideCursor;
@@ -197,10 +197,16 @@ for phaseNum=1:length(phaseFolders)
     disp('waiting for researcher...');
     waitForSerialInput(s, RESEARCHER_BUTTON);
     
+    Screen('FillRect', w, gray)
+    Screen('Flip', w)
+    
     % START TRIALS
     % For development we loop over 2 trails,
     % for full study, replace "2" with "length(trialFilenames)"
-    for trialNum=1:2 %length(trialFilenames)
+    for trialNum=1:length(trialFilenames)
+        
+        %Hold The Grey Screen before showing fixation
+        WaitSecs(2.0);
         
         % -------------------
         % START EDF recording
@@ -213,6 +219,7 @@ for phaseNum=1:length(phaseFolders)
         % start recording eye position
         disp('start recording')
         Eyelink('StartRecording');
+        
         % record a few samples before we actually start displaying
         WaitSecs(0.1);
         
@@ -223,10 +230,13 @@ for phaseNum=1:length(phaseFolders)
         Screen('FillRect', w, gray)
         Screen('FillRect', w, BLACK, FixCross');
         
+        
+        %wake up the participant before displaying fixation
+        playBeep(pahandle);    
         %%%%
         Screen('Flip', w);
         % mark zero-plot time in data file
-        Eyelink('Message', 'SYNCTIME');
+        Eyelink('Message', 'FIXATION_POINT');
         %%%%
         
         WaitSecs(FIXATION_TIMEOUT);
@@ -249,6 +259,7 @@ for phaseNum=1:length(phaseFolders)
         % Show stimulus on screen at next possible display refresh cycle,
         % and record stimulus onset time in 'startTime':
         [VBLTimestamp, startTime]=Screen('Flip', w);
+        Eyelink('Message', 'STIM_ONSET');
         %disp(startTime);
         
         %record participant input, either: Button1, Button2, ''
@@ -291,10 +302,6 @@ for phaseNum=1:length(phaseFolders)
             codedResponse, ...
             (responseTime - startTime) ...
         );
-        
-        %Wait for Researcher to press button
-        disp('waiting for researcher...');
-        waitForSerialInput(s, RESEARCHER_BUTTON);
         
         % -------------------
         % STOP EDF recording
