@@ -47,7 +47,7 @@ Screen('Preference', 'SkipSyncTests', 1);
 
 %turn on psychtoolbox sound
 pahandle = initBeep();
- 
+
 % Hide the mouse cursor:
 %HideCursor;
 
@@ -83,7 +83,8 @@ handMeaning = {'yes', 'no'};
 % folder.
 practiceFolder   = ['./phases/practice/'];
 studyFolder      = ['./phases/study/'];
-testFolder       = ['./phases/test/'];
+testAFolder       = ['./phases/testA/'];
+testBFolder       = ['./phases/testB/'];
 resultsFolder    = ['./results/'];
 edfFolder        = [resultsFolder '/edf/'];
 resultFilePrefix = 'OcularMotorExperiment';
@@ -92,10 +93,20 @@ outputFilename   = [resultsFolder resultFilePrefix sprintf(['_%i.%s'], subId, 'd
 % each phase has a trials file tht defines
 % which image to use, and what that image means (class, type)
 trialListFilename= 'trials.txt';
+
 % Define the oder of the phases, and assign what the hands mean.
-phaseFolders     = { practiceFolder, studyFolder, testFolder };
-phaseLeftHand = {handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}};
-phaseRightHand = {handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}};
+% TestA and TestB order needs to be randomized. We flip a coin, and swap
+% the order.
+testAFirst = round(rand(1)); % flip a coin, 0 or 1.
+
+if testAFirst == 1 
+   phaseFolders     = { practiceFolder, studyFolder, testAFolder, testBFolder }; 
+else 
+   phaseFolders     = { practiceFolder, studyFolder, testBFolder, testAFolder };
+end
+
+phaseLeftHand = {handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}};
+phaseRightHand = {handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}};
 phaseInstructions= { 
     sprintf('Practice Phase\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{1}, phaseRightHand{1}), ...
@@ -103,16 +114,19 @@ phaseInstructions= {
         phaseLeftHand{2}, phaseRightHand{2}), ...
     sprintf('Test Phase\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{3}, phaseRightHand{3}) ...
+    sprintf('Test Phase\n Left Hand = %s , Right Hand = %s', ...
+        phaseLeftHand{4}, phaseRightHand{4}) ...
 };
 
 
 %open the output result file for this subject
 outputFilePointer = getOutputFilePointer(outputFilename);
 %write labels
-fprintf(outputFilePointer, '%s %s %s %s %s %s %s %s %s %s\n', ...
+fprintf(outputFilePointer, '%s %s %s %s %s %s %s %s %s %s %s\n', ...
     'subId', ...
     'phaseNum', ...
     'trialNum', ...
+    'phaseFolder', ...
     'trialFilename', ...
     'trialType', ...
     'trialClass', ...
@@ -175,6 +189,15 @@ Screen('BlendFunction', w, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
 
 %START PHASES
 for phaseNum=1:length(phaseFolders)
+    
+    %if the folder is a "test" folder, we do recalibartion flow
+    if (strfind(phaseFolders{phaseNum}, 'test') > 1) == 1
+        disp('about to do tracker setup')
+        EyelinkDoTrackerSetup(el);
+        
+        disp('do drift correction')
+        EyelinkDoDriftCorrection(el);
+    end
     
     %load the trials (stims) for the phase
     thisPhaseFilename = [phaseFolders{phaseNum} trialListFilename];
@@ -290,10 +313,11 @@ for phaseNum=1:length(phaseFolders)
         end 
         
         %write participant response to file
-        fprintf(outputFilePointer, '%i %i %i %s %s %s %s %s %s %d\n', ...
+        fprintf(outputFilePointer, '%i %i %i %s %s %s %s %s %s %s %d\n', ...
             subId, ...
             phaseNum, ...
             trialNum, ...
+            char(phaseFolders(phaseNum)), ...
             char(trialFilenames(trialNum)), ...
             char(types(trialTypes(trialNum))), ...
             char(classes(trialClasses(trialNum))), ...
