@@ -89,7 +89,7 @@ resultsFolder    = ['./results/'];
 edfFolder        = [resultsFolder '/edf/'];
 resultFilePrefix = 'OcularMotorExperiment';
 % define where to store our participant's results
-outputFilename   = [resultsFolder resultFilePrefix sprintf(['_%i.%s'], subId, 'dat') ];
+outputFilename   = [resultsFolder resultFilePrefix sprintf('_%i.%s', subId, 'dat') ];
 % each phase has a trials file tht defines
 % which image to use, and what that image means (class, type)
 trialListFilename= 'trials.txt';
@@ -339,7 +339,7 @@ for phaseNum=1:length(phaseFolders)
             fprintf('ReceiveFile status %d\n', status);
         end
         if 2==exist(edfFile, 'file')
-            moveFileTo = [edfFolder resultFilePrefix sprintf(['_%i_%i_%i.%s'], subId, phaseNum, trialNum, 'edf') ];
+            moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%i_%i.%s', subId, phaseNum, trialNum, 'edf') ];
             [status, message] = movefile(edfFile, moveFileTo);
             if 1==status
                 error(message);
