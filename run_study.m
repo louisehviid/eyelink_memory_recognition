@@ -1,5 +1,6 @@
 % Cleanup before we start just in case serial port or sychtoolbox have
 % crashed during development
+addpath(genpath('./'));
 delete(instrfindall);
 sca;
 
@@ -162,8 +163,7 @@ ListenChar(2);
 
 if ~EyelinkInit(0, 1)
     fprintf('Eyelink Init aborted.\n');
-    cleanup;  % cleanup function
-    return;
+    error('eyelink initialization failed.')
 end
 
 %-------------------
@@ -368,7 +368,6 @@ catch err
     Screen('CloseAll');
     ShowCursor;
     fclose('all');
-    delete(s);
     Priority(0);
     
     % Output the error message that describes the error:
