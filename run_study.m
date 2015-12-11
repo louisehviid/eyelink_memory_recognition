@@ -14,6 +14,8 @@ sca;
 %CONSTANTS... timeouts in seconds
 INSTRUCTION_TIMEOUT      = 2;
 FIXATION_TIMEOUT         = 2;
+ILLUSION_TIMEOUT         = 5;
+ILLUSION_GREY_TIMEOUT    = 5;
 PICTURE_TIMEOUT          = 3; 
 PARTICIPANT_TIMEOUT      = 10;
 PARTICIPANT_LEFT_BUTTON  = 'Button1';
@@ -41,10 +43,10 @@ screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
 
 %small test screen
-%[w, rect] = Screen('OpenWindow', 0, [],[0 0 640 480]);
+[w, rect] = Screen('OpenWindow', 0, [],[0 0 640 480]);
 
 %full screen
-[w, rect] = Screen('OpenWindow', screenNumber, []);
+%[w, rect] = Screen('OpenWindow', screenNumber, []);
 
 %turn on psychtoolbox sound
 pahandle = initBeep();
@@ -86,37 +88,39 @@ practiceFolder   = ['./phases/practice/'];
 studyFolder      = ['./phases/study/'];
 testAFolder       = ['./phases/testA/'];
 testBFolder       = ['./phases/testB/'];
+illusionsFolder   = ['./phases/testIllusions/'];
 resultsFolder    = ['./results/'];
 edfFolder        = [resultsFolder '/edf/'];
 resultFilePrefix = 'OcularMotorExperiment';
 % define where to store our participant's results
 outputFilename   = [resultsFolder resultFilePrefix sprintf('_%i.%s', subId, 'dat') ];
-% each phase has a trials file tht defines
+% each phase has a trials file that defines
 % which image to use, and what that image means (class, type)
 trialListFilename= 'trials.txt';
 
-% Define the oder of the phases, and assign what the hands mean.
+% Define the order of the phases, and assign what the hands mean.
 % TestA and TestB order needs to be randomized. We flip a coin, and swap
 % the order.
 testAFirst = round(rand(1)); % flip a coin, 0 or 1.
 
 if testAFirst == 1 
-   phaseFolders     = { practiceFolder, studyFolder, testAFolder, testBFolder }; 
+   phaseFolders     = { practiceFolder, studyFolder, testAFolder, testBFolder, illusionsFolder}; 
 else 
-   phaseFolders     = { practiceFolder, studyFolder, testBFolder, testAFolder };
+   phaseFolders     = { practiceFolder, studyFolder, testBFolder, testAFolder, illusionsFolder};
 end
 
 phaseLeftHand = {handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}};
 phaseRightHand = {handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}};
 phaseInstructions= { 
-    sprintf('Practice Phase\n Left Hand = %s , Right Hand = %s', ...
+    sprintf('Please indicate if you see an animal or not\nPress "yes" if you see an animal or "no" for everything else\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{1}, phaseRightHand{1}), ...
-    sprintf('Study Phase\n Left Hand = %s , Right Hand = %s', ...
+    sprintf('Please try to remember the pictures as best you can and still press "yes" if you see an animal or "no" for everything else\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{2}, phaseRightHand{2}), ...
-    sprintf('Test Phase\n Left Hand = %s , Right Hand = %s', ...
+    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before or "no" if you have not\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{3}, phaseRightHand{3}) ...
-    sprintf('Test Phase\n Left Hand = %s , Right Hand = %s', ...
+    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before or "no" if you have not\n Left Hand = %s , Right Hand = %s', ...
         phaseLeftHand{4}, phaseRightHand{4}) ...
+    'Please watch the follow series of pictures\nThere is no response needed.'
 };
 
 
@@ -199,6 +203,8 @@ for phaseNum=1:length(phaseFolders)
         EyelinkDoDriftCorrection(el);
     end
     
+    isIllusions = strfind(phaseFolders{phaseNum}, 'Illusions' > 1);
+    
     %load the trials (stims) for the phase
     thisPhaseFilename = [phaseFolders{phaseNum} trialListFilename];
     [trialFilenames, trialTypes, trialClasses] = getRandomizedTrialData(thisPhaseFilename);
@@ -253,9 +259,11 @@ for phaseNum=1:length(phaseFolders)
         Screen('FillRect', w, gray)
         Screen('FillRect', w, BLACK, FixCross');
         
-        
         %wake up the participant before displaying fixation
-        playBeep(pahandle);    
+        if (isIllusions == 0)
+            playBeep(pahandle);
+        end
+        
         %%%%
         Screen('Flip', w);
         % mark zero-plot time in data file
@@ -285,32 +293,44 @@ for phaseNum=1:length(phaseFolders)
         Eyelink('Message', 'STIM_ONSET');
         %disp(startTime);
         
-        %record participant input, either: Button1, Button2, ''
-        disp('showing image, waiting for participant, or 3 seconds');
-        [response, responseTime] = waitForParticipantInputOrTimeout(s, PARTICIPANT_LEFT_BUTTON, PARTICIPANT_RIGHT_BUTTON, PICTURE_TIMEOUT);
-        disp(responseTime);
-        
+        if (isIllusions == 0)
+            %record participant input, either: Button1, Button2, ''
+            disp('showing image, waiting for participant, or 3 seconds');
+            [response, responseTime] = waitForParticipantInputOrTimeout(s, PARTICIPANT_LEFT_BUTTON, PARTICIPANT_RIGHT_BUTTON, PICTURE_TIMEOUT);
+            disp(responseTime);
+        else
+            %display illusion for fixed time
+            disp('showing illusion for fixed time');
+            WaitSecs(ILLUSION_TIMEOUT);
+        end
+            
         %Display the grey screen
         disp('Show Grey Screen');
         Screen('FillRect', w, gray); % fill the screen with gray
         Screen('Flip', w); % present to the screen
         
-        % if they did not repond while image was on screen
-        % record participant input, either: Button1, Button2, ''
-        if (strcmp(response, ''))
-            disp('waiting for participant again. 10 seconds.');
-            [response, responseTime] = waitForParticipantInputOrTimeout(s, PARTICIPANT_LEFT_BUTTON, PARTICIPANT_RIGHT_BUTTON, PARTICIPANT_TIMEOUT);
-        end
-        
-        if (strcmp(response, PARTICIPANT_LEFT_BUTTON))
-            codedResponse = phaseLeftHand{phaseNum};
-        elseif (strcmp(response, PARTICIPANT_RIGHT_BUTTON))
-            codedResponse = phaseRightHand{phaseNum};
+        if (isIllusions == 0)
+            % if they did not repond while image was on screen
+            % record participant input, either: Button1, Button2, ''
+            if (strcmp(response, ''))
+                disp('waiting for participant again. 10 seconds.');
+                [response, responseTime] = waitForParticipantInputOrTimeout(s, PARTICIPANT_LEFT_BUTTON, PARTICIPANT_RIGHT_BUTTON, PARTICIPANT_TIMEOUT);
+            end
+
+            if (strcmp(response, PARTICIPANT_LEFT_BUTTON))
+                codedResponse = phaseLeftHand{phaseNum};
+            elseif (strcmp(response, PARTICIPANT_RIGHT_BUTTON))
+                codedResponse = phaseRightHand{phaseNum};
+            else
+                codedResponse = 'none';
+                %if the response timed out, prompt the researcher
+                sendSerialOutput(s, SIGNAL_TIMEOUT);
+            end
         else
-            codedResponse = 'none';
-            %if the response timed out, prompt the researcher
-            sendSerialOutput(s, SIGNAL_TIMEOUT);
-        end 
+            %display the the grey screen for fixed time
+            disp('displaying the grey screen for a fixed time between illusions');
+            WaitSecs(ILLUSION_GREY_TIMEOUT);
+        end
         
         %write participant response to file
         fprintf(outputFilePointer, '%i %i %i %s %s %s %s %s %s %s %d\n', ...
