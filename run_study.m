@@ -125,11 +125,25 @@ phaseInstructions= {
 };
 
 phaseAudioInstructions = {
-    [audioInstructionsFolder 'Practice_final.aiff'];
-    [audioInstructionsFolder 'study.aiff'];
-    [audioInstructionsFolder 'test1.aiff'];
-    [audioInstructionsFolder 'test1.aiff'];
-    [audioInstructionsFolder 'illusion.aiff'];
+    [audioInstructionsFolder 'Practice_final.aiff'], ...
+    [audioInstructionsFolder 'study.aiff'], ...
+    [audioInstructionsFolder 'test1.aiff'], ...
+    [audioInstructionsFolder 'test1.aiff'], ...
+    [audioInstructionsFolder 'illusion.aiff'] ...
+};
+calibrationInstructions = {
+    '', ...
+    '', ...
+    [audioInstructionsFolder 'cali_study.aiff'], ...
+    [audioInstructionsFolder 'cali_test.aiff'], ...
+    [audioInstructionsFolder 'cali_gen.aiff'] ...
+};
+trialInstructions = {
+   [audioInstructionsFolder 'in_trials.aiff'], ...
+   [audioInstructionsFolder 'in_trials.aiff'], ...
+   [audioInstructionsFolder 'in_trial_old.aiff'], ...
+   [audioInstructionsFolder 'in_trial_old.aiff'], ...
+   '' ...
 };
 
 %open the output result file for this subject
@@ -186,6 +200,10 @@ fprintf('Running experiment on a ''%s'' tracker.\n', vs );
 % make sure that we get gaze data from the Eyelink
 Eyelink('Command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
 
+%play welcome instructions
+[y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
+sound(y,Fs);
+
 % STEP 4
 % Calibrate the eye tracker
 disp('about to do tracker setup')
@@ -204,6 +222,9 @@ for phaseNum=1:length(phaseFolders)
     
     %if the folder is a "test" folder, we do recalibartion flow
     if (strfind(phaseFolders{phaseNum}, 'test') > 1) == 1
+        [y,Fs] = audioread(calibrationInstructions{phaseNum});
+        sound(y,Fs);
+        
         disp('about to do tracker setup')
         EyelinkDoTrackerSetup(el);
         
@@ -212,7 +233,6 @@ for phaseNum=1:length(phaseFolders)
     end
     
     %play phase audio instructions
-    disp(phaseAudioInstructions{phaseNum});
     [y,Fs] = audioread(phaseAudioInstructions{phaseNum});
     sound(y,Fs); 
     
@@ -307,6 +327,10 @@ for phaseNum=1:length(phaseFolders)
         %disp(startTime);
         
         if (phaseNum ~= 5)
+            %play trial Instructions
+            [y,Fs] = audioread(trialInstructions{phaseNum});
+            sound(y,Fs);
+            
             %record participant input, either: Button1, Button2, ''
             disp('showing image, waiting for participant, or 3 seconds');
             [response, responseTime] = waitForParticipantInputOrTimeout(s, PARTICIPANT_LEFT_BUTTON, PARTICIPANT_RIGHT_BUTTON, PICTURE_TIMEOUT);
@@ -386,6 +410,9 @@ for phaseNum=1:length(phaseFolders)
     end
 end
 
+%play End message
+[y,Fs] = audioread([audioInstructionsFolder 'end2.aiff']);
+sound(y, Fs);
 
 % CLEANUP
 Eyelink('Shutdown');
