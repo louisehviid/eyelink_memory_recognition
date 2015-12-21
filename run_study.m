@@ -112,14 +112,14 @@ end
 phaseLeftHand = {handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}};
 phaseRightHand = {handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}};
 phaseInstructions= { 
-    sprintf('Please indicate if you see an animal or not\nPress "yes" if you see an animal or "no" for everything else\n Left Hand = %s , Right Hand = %s', ...
-        phaseLeftHand{1}, phaseRightHand{1}), ...
-    sprintf('Please try to remember the pictures as best you can and still press "yes" if you see an animal or "no" for everything else\n Left Hand = %s , Right Hand = %s', ...
-        phaseLeftHand{2}, phaseRightHand{2}), ...
-    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before or "no" if you have not\n Left Hand = %s , Right Hand = %s', ...
-        phaseLeftHand{3}, phaseRightHand{3}) ...
-    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before or "no" if you have not\n Left Hand = %s , Right Hand = %s', ...
-        phaseLeftHand{4}, phaseRightHand{4}) ...
+    sprintf('Please indicate if you see an animal or not\nPress "yes" if you see an animal\n, Right Hand = %s', ...
+        phaseRightHand{1}), ...
+    sprintf('Please try to remember the pictures as best you can and still press "yes" if you see an animal\n Right Hand = %s', ...
+        phaseRightHand{2}), ...
+    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before\n Right Hand = %s', ...
+        phaseRightHand{3}) ...
+    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before, Right Hand = %s', ...
+        phaseRightHand{4}) ...
     'Please watch the follow series of pictures\nThere is no response needed.'
 };
 
@@ -158,17 +158,17 @@ ListenChar(2);
 
 % ----------------
 % EYELINK DUMMY MODE
-% you can init(ialize) in dummy mode when eyelink is not available
-%EyelinkInit(1,1)
+%you can init(ialize) in dummy mode when eyelink is not available
+EyelinkInit(1,1)
 %-----------------
 
 %-------------------
 % EYELINK FOR REAL MODE
 
-if ~EyelinkInit(0, 1)
-    fprintf('Eyelink Init aborted.\n');
-    error('eyelink initialization failed.')
-end
+%if ~EyelinkInit(0, 1)
+%    fprintf('Eyelink Init aborted.\n');
+%    error('eyelink initialization failed.')
+%end
 
 %-------------------
 
@@ -209,6 +209,8 @@ for phaseNum=1:length(phaseFolders)
     thisPhaseFilename = [phaseFolders{phaseNum} trialListFilename];
     [trialFilenames, trialTypes, trialClasses] = getRandomizedTrialData(thisPhaseFilename);
     
+    %Display audio directions
+    
     %Display Instructions to participant
     disp('Instructions');
     disp(phaseInstructions{phaseNum});
@@ -232,7 +234,7 @@ for phaseNum=1:length(phaseFolders)
     % START TRIALS
     % For development we loop over 2 trails,
     % for full study, replace "2" with "length(trialFilenames)"
-    for trialNum=1:length(trialFilenames)
+    for trialNum=1:2 %length(trialFilenames)
         
         %Hold The Grey Screen before showing fixation
         WaitSecs(2.0);

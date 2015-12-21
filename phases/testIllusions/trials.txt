@@ -1,2 +1,4 @@
 Asahi.jpg 0 0
 AsahiReversed.jpg 0 0
+lightcube_Fotor.jpg 0 0 
+lightcube_Fotor2.jpg 0 0 
