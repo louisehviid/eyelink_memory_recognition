@@ -84,12 +84,13 @@ handMeaning = {'yes', 'no'};
 % Setup file paths relative to './' which is whatever directory Matlab
 % environment is in... vs 'pwd' which would be relative to the ocularmotor2
 % folder.
-practiceFolder   = ['./phases/practice/'];
-studyFolder      = ['./phases/study/'];
-testAFolder       = ['./phases/testA/'];
-testBFolder       = ['./phases/testB/'];
-illusionsFolder   = ['./phases/testIllusions/'];
-resultsFolder    = ['./results/'];
+practiceFolder   = './phases/practice/';
+studyFolder      = './phases/study/';
+testAFolder       = './phases/testA/';
+testBFolder       = './phases/testB/';
+illusionsFolder   = './phases/testIllusions/';
+audioInstructionsFolder = './Instructions/';
+resultsFolder    = './results/';
 edfFolder        = [resultsFolder '/edf/'];
 resultFilePrefix = 'OcularMotorExperiment';
 % define where to store our participant's results
@@ -123,6 +124,13 @@ phaseInstructions= {
     'Please watch the follow series of pictures\nThere is no response needed.'
 };
 
+phaseAudioInstructions = {
+    [audioInstructionsFolder 'Practice_final.aiff'];
+    [audioInstructionsFolder 'study.aiff'];
+    [audioInstructionsFolder 'test1.aiff'];
+    [audioInstructionsFolder 'test1.aiff'];
+    [audioInstructionsFolder 'illusion.aiff'];
+};
 
 %open the output result file for this subject
 outputFilePointer = getOutputFilePointer(outputFilename);
@@ -202,6 +210,11 @@ for phaseNum=1:length(phaseFolders)
         disp('do drift correction')
         EyelinkDoDriftCorrection(el);
     end
+    
+    %play phase audio instructions
+    disp(phaseAudioInstructions{phaseNum});
+    [y,Fs] = audioread(phaseAudioInstructions{phaseNum});
+    sound(y,Fs); 
     
     %load the trials (stims) for the phase
     thisPhaseFilename = [phaseFolders{phaseNum} trialListFilename];
