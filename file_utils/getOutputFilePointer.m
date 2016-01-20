@@ -7,6 +7,9 @@ function dataFilePointer = getOutputFilePointer(outputFilename)
         error('Result data file already exists! Choose a different subject number.');
     else
         disp(file)
-        dataFilePointer = fopen(file,'wt'); % open ASCII file for writing
+        [dataFilePointer, message] = fopen(file,'wt'); % open ASCII file for writing
+        if dataFilePointer == -1 
+            error(message)
+        end
     end
 end

@@ -1,0 +1,4 @@
+Asahi.jpg 1 1
+AsahiReversed.jpg 1 1
+lightcube_Fotor.jpg 1 1 
+lightcube_Fotor2.jpg 1 1 
