@@ -16,7 +16,7 @@ INSTRUCTION_TIMEOUT      = 2;
 FIXATION_TIMEOUT         = 2;
 ILLUSION_TIMEOUT         = 5;
 ILLUSION_GREY_TIMEOUT    = 5;
-PICTURE_TIMEOUT          = 3; 
+PICTURE_TIMEOUT          = 4; 
 PARTICIPANT_TIMEOUT      = 10;
 PARTICIPANT_LEFT_BUTTON  = 'Button1';
 PARTICIPANT_RIGHT_BUTTON = 'Button2';
@@ -38,12 +38,13 @@ subId = str2num(promptForSubjectId());
 AssertOpenGL;
 
 try
+PsychDefaultSetup(2);
 screens=Screen('Screens');
 screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
 
 %small test screen
-[w, rect] = Screen('OpenWindow', 0, [],[0 0 640 480]);
+[w, rect] = PsychImaging('OpenWindow', 0, [],[0 0 640 480]);
 
 %full screen
 %[w, rect] = Screen('OpenWindow', screenNumber, []);
@@ -56,7 +57,7 @@ pahandle = initBeep();
 
 % Returns as default the mean gray value of screen:
 gray=GrayIndex(screenNumber);
-Screen('TextSize', w, 14);
+Screen('TextSize', w, 18);
 
 % Do dummy calls to GetSecs, WaitSecs, KbCheck to make sure
 % they are loaded and ready when we need them - without delays
@@ -113,15 +114,11 @@ end
 phaseLeftHand = {handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}, handMeaning{leftHand}};
 phaseRightHand = {handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}, handMeaning{rightHand}};
 phaseInstructions= { 
-    sprintf('Please indicate if you see an animal or not\nPress "yes" if you see an animal\n, Right Hand = %s', ...
-        phaseRightHand{1}), ...
-    sprintf('Please try to remember the pictures as best you can and still press "yes" if you see an animal\n Right Hand = %s', ...
-        phaseRightHand{2}), ...
-    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before\n Right Hand = %s', ...
-        phaseRightHand{3}) ...
-    sprintf('Please indicate if you have seen a picture before\nPress "yes" if you have seen it before, Right Hand = %s', ...
-        phaseRightHand{4}) ...
-    'Please watch the follow series of pictures\nThere is no response needed.'
+    'Please indicate if you see an animal or not\nPress "yes" if you see an animal', ...
+    'Please try to remember the pictures. \nAnd press "yes" if you see an animal', ...
+    'Please indicate if you have seen a picture before\nPress "yes" if old picture', ...
+    'Please indicate if you have seen a picture before\nPress "yes" if old picture', ...
+    'Please watch the follow series of pictures\nThere is no response needed.' ...
 };
 
 phaseAudioInstructions = {
@@ -213,6 +210,75 @@ EyelinkDoTrackerSetup(el);
 disp('do drift correction')
 EyelinkDoDriftCorrection(el);
 
+%--- START Pupil Noise Test.
+white = WhiteIndex(screenNumber);
+black = BlackIndex(screenNumber);
+
+%Make the screen black
+Screen('FillRect', w, black);
+Screen('Flip', w);
+
+%Play the instuctions
+[y,Fs] = audioread([audioInstructionsFolder 'Fixation_red.aiff']);
+sound(y,Fs);
+
+%Wait for length of instructions.
+WaitSecs(7)
+
+% -------------------
+% START EDF recording
+% -------------------
+% open file to record data to
+disp('opening demo file')
+edfFile='lh_temp.edf';
+Eyelink('Openfile', edfFile);
+% start recording eye position
+disp('start recording')
+Eyelink('StartRecording');
+
+% record a few samples before we actually start displaying
+WaitSecs(0.1);
+
+%Display the red dot for 10 seconds
+dotColor = [1 0 0];
+dotSizePix = 60;
+[xCenter, yCenter] = RectCenter(rect)
+Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+Screen('DrawDots', w, [xCenter yCenter], dotSizePix, dotColor, [], 1);
+Screen('DrawDots', w, [xCenter yCenter], 10, [1 1 1], [], 1);
+Screen('Flip', w);
+WaitSecs(6);
+
+%Stop Eyetracker recording.
+%Save recording to seperate file.
+% -------------------
+% STOP EDF recording
+% -------------------
+Eyelink('StopRecording');
+Eyelink('CloseFile');
+
+fprintf('Receiving data file ''%s''\n', edfFile );
+status=Eyelink('ReceiveFile');
+if status > 0
+    fprintf('ReceiveFile status %d\n', status);
+end
+if 2==exist(edfFile, 'file')
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'red_dot', 'edf') ];
+    [status, message] = movefile(edfFile, moveFileTo);
+    if 1==status
+        error(message);
+    else
+        fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+    end
+end
+
+
+%Display a grey screen.
+Screen('FillRect', w, gray);
+Screen('Flip', w);
+
+%---- END Pupil Noise Test.
+
 % This makes white background of images blend
 % good explanation here: http://www.machwerx.com/2009/02/11/glblendfunc/
 Screen('BlendFunction', w, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
@@ -246,7 +312,7 @@ for phaseNum=1:length(phaseFolders)
     disp('Instructions');
     disp(phaseInstructions{phaseNum});
     Screen('FillRect', w, gray);
-    DrawFormattedText(w, phaseInstructions{phaseNum}, 'center', 'center', BLACK);
+    DrawFormattedText(w, phaseInstructions{phaseNum}, 'center', 'center');
     
     % Update the display to show the instruction text:
     Screen('Flip', w);
