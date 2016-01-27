@@ -43,10 +43,10 @@ screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
 
 %small test screen
-[w, rect] = Screen('OpenWindow', 0, [],[0 0 640 480]);
+%[w, rect] = Screen('OpenWindow', 0, [],[0 0 640 480]);
 
 %full screen
-%[w, rect] = Screen('OpenWindow', screenNumber, []);
+[w, rect] = Screen('OpenWindow', screenNumber, []);
 
 %turn on psychtoolbox sound
 pahandle = initBeep();
@@ -181,16 +181,16 @@ ListenChar(2);
 % ----------------
 % EYELINK DUMMY MODE
 %you can init(ialize) in dummy mode when eyelink is not available
-EyelinkInit(1,1)
+%EyelinkInit(1,1)
 %-----------------
 
 %-------------------
 % EYELINK FOR REAL MODE
 
-%if ~EyelinkInit(0, 1)
-%    fprintf('Eyelink Init aborted.\n');
-%    error('eyelink initialization failed.')
-%end
+if ~EyelinkInit(0, 1)
+    fprintf('Eyelink Init aborted.\n');
+    error('eyelink initialization failed.')
+end
 
 %-------------------
 
