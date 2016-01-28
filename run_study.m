@@ -17,7 +17,7 @@ FIXATION_TIMEOUT         = 2;
 ILLUSION_TIMEOUT         = 5;
 ILLUSION_GREY_TIMEOUT    = 5;
 PICTURE_TIMEOUT          = 4; 
-PARTICIPANT_TIMEOUT      = 10;
+PARTICIPANT_TIMEOUT      = 1;
 PARTICIPANT_LEFT_BUTTON  = 'Button1';
 PARTICIPANT_RIGHT_BUTTON = 'Button2';
 RESEARCHER_BUTTON        = 'Button3';
@@ -42,9 +42,11 @@ PsychDefaultSetup(2);
 screens=Screen('Screens');
 screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
+Framerate = Screen('FrameRate', screens);
 
 %small test screen
-[w, rect] = PsychImaging('OpenWindow', 0, [],[0 0 640 480]);
+%[w, rect] = PsychImaging('OpenWindow', 0, [],[0 0 640 480]);
+[w,rect] = Screen('OpenWindow', screenNumber, [0 0 0], [0 0 640 480]); %open a window, on your screen that is black (R0,G0,B0) and 1024x768. The upper left hand corner will be pt 0,0 and lower right will be 1024,768
 
 %full screen
 %[w, rect] = Screen('OpenWindow', screenNumber, []);
@@ -185,8 +187,8 @@ EyelinkInit(1,1)
 % EYELINK FOR REAL MODE
 
 %if ~EyelinkInit(0, 1)
-%    fprintf('Eyelink Init aborted.\n');
-%    error('eyelink initialization failed.')
+%fprintf('Eyelink Init aborted.\n');
+%error('eyelink initialization failed.')
 %end
 
 %-------------------
@@ -211,8 +213,8 @@ disp('do drift correction')
 EyelinkDoDriftCorrection(el);
 
 %--- START Pupil Noise Test.
-white = WhiteIndex(screenNumber);
-black = BlackIndex(screenNumber);
+black = [0 0 0]; %defining the color black in rgb
+white = [255 255 255]; %defining the color white in rgb
 
 %Make the screen black
 Screen('FillRect', w, black);
@@ -240,12 +242,22 @@ Eyelink('StartRecording');
 WaitSecs(0.1);
 
 %Display the red dot for 10 seconds
-dotColor = [1 0 0];
-dotSizePix = 60;
-[xCenter, yCenter] = RectCenter(rect)
-Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-Screen('DrawDots', w, [xCenter yCenter], dotSizePix, dotColor, [], 1);
-Screen('DrawDots', w, [xCenter yCenter], 10, [1 1 1], [], 1);
+%dotColor = [1 0 0];
+%dotSizePix = 60;
+%[xCenter, yCenter] = RectCenter(rect)
+%Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+%Screen('DrawDots', w, [xCenter yCenter], dotSizePix, dotColor, [], 1);
+%Screen('DrawDots', w, [xCenter yCenter], 10, [1 1 1], [], 1);
+%Screen('Flip', w);
+%WaitSecs(6);
+ 
+[CX,CY] = RectCenter(rect);
+
+DotSize = 50;
+DotSizeSmall = DotSize/5;
+
+Screen(w, 'FillOval', [255 0 0], [CX-DotSize/2 CY-DotSize/2 CX+DotSize/2 CY+DotSize/2]); %and put a fixation dot in the center of the screen. 
+Screen(w, 'FillOval', white, [CX-DotSizeSmall/2 CY-DotSizeSmall/2 CX+DotSizeSmall/2 CY+DotSizeSmall/2]); %and put a fixation dot in the center of the screen. 
 Screen('Flip', w);
 WaitSecs(6);
 
@@ -276,6 +288,86 @@ end
 %Display a grey screen.
 Screen('FillRect', w, gray);
 Screen('Flip', w);
+
+%--- START Pupil Noise Inward Attention Test.
+black = [0 0 0]; %defining the color black in rgb
+white = [255 255 255]; %defining the color white in rgb
+
+%Make the screen black
+Screen('FillRect', w, black);
+Screen('Flip', w);
+
+%Play the instuctions
+[y,Fs] = audioread([audioInstructionsFolder 'Inward_atten.aiff']);
+sound(y,Fs);
+
+%Wait for length of instructions.
+WaitSecs(12)
+
+% -------------------
+% START EDF recording
+% -------------------
+% open file to record data to
+disp('opening demo file')
+edfFile='lh_temp.edf';
+Eyelink('Openfile', edfFile);
+% start recording eye position
+disp('start recording')
+Eyelink('StartRecording');
+
+% record a few samples before we actually start displaying
+WaitSecs(0.1);
+
+%Display the red dot for 10 seconds
+%dotColor = [1 0 0];
+%dotSizePix = 60;
+%[xCenter, yCenter] = RectCenter(rect)
+%Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+%Screen('DrawDots', w, [xCenter yCenter], dotSizePix, dotColor, [], 1);
+%Screen('DrawDots', w, [xCenter yCenter], 10, [1 1 1], [], 1);
+%Screen('Flip', w);
+%WaitSecs(6);
+ 
+[CX,CY] = RectCenter(rect);
+
+DotSize = 50;
+DotSizeSmall = DotSize/5;
+
+Screen(w, 'FillOval', [255 0 0], [CX-DotSize/2 CY-DotSize/2 CX+DotSize/2 CY+DotSize/2]); %and put a fixation dot in the center of the screen. 
+Screen(w, 'FillOval', white, [CX-DotSizeSmall/2 CY-DotSizeSmall/2 CX+DotSizeSmall/2 CY+DotSizeSmall/2]); %and put a fixation dot in the center of the screen. 
+Screen('Flip', w);
+WaitSecs(20);
+
+%Stop Eyetracker recording.
+%Save recording to seperate file.
+% -------------------
+% STOP EDF recording
+% -------------------
+Eyelink('StopRecording');
+Eyelink('CloseFile');
+
+fprintf('Receiving data file ''%s''\n', edfFile );
+status=Eyelink('ReceiveFile');
+if status > 0
+    fprintf('ReceiveFile status %d\n', status);
+end
+if 2==exist(edfFile, 'file')
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'red_dot', 'edf') ];
+    [status, message] = movefile(edfFile, moveFileTo);
+    if 1==status
+        error(message);
+    else
+        fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+    end
+end
+
+
+%Display a grey screen.
+Screen('FillRect', w, gray);
+Screen('Flip', w);
+
+WaitSecs(3);
+
 
 %---- END Pupil Noise Test.
 
