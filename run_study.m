@@ -4,6 +4,8 @@ addpath(genpath('./'));
 delete(instrfindall);
 sca;
 
+PsychDefaultSetup(1);
+
 % note on stimulus preparation
 % psychtoolbox and matlab do not play well with indexed images
 % rgb pngs give the most consistent results
@@ -169,6 +171,10 @@ set(s, 'Terminator', 'CR/LF');
 set(s, 'ReadAsyncMode', 'continuous');
 fopen(s);
 
+%play welcome instructions
+[y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
+sound(y,Fs);
+
 %---------- EYELINK ------------
 % Provide Eyelink with details about the graphics environment
 % and perform some initializations. The information is returned
@@ -199,10 +205,6 @@ fprintf('Running experiment on a ''%s'' tracker.\n', vs );
 
 % make sure that we get gaze data from the Eyelink
 Eyelink('Command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
-
-%play welcome instructions
-[y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
-sound(y,Fs);
 
 % STEP 4
 % Calibrate the eye tracker
