@@ -4,6 +4,8 @@ addpath(genpath('./'));
 delete(instrfindall);
 sca;
 
+PsychDefaultSetup(1);
+
 % note on stimulus preparation
 % psychtoolbox and matlab do not play well with indexed images
 % rgb pngs give the most consistent results
@@ -45,11 +47,10 @@ Screen('Preference', 'SkipSyncTests', 1);
 Framerate = Screen('FrameRate', screens);
 
 %small test screen
-%[w, rect] = PsychImaging('OpenWindow', 0, [],[0 0 640 480]);
-[w,rect] = Screen('OpenWindow', screenNumber, [0 0 0], [0 0 640 480]); %open a window, on your screen that is black (R0,G0,B0) and 1024x768. The upper left hand corner will be pt 0,0 and lower right will be 1024,768
+%[w,rect] = Screen('OpenWindow', screenNumber, [0 0 0], [0 0 640 480]); %open a window, on your screen that is black (R0,G0,B0) and 1024x768. The upper left hand corner will be pt 0,0 and lower right will be 1024,768
 
 %full screen
-%[w, rect] = Screen('OpenWindow', screenNumber, []);
+[w, rect] = Screen('OpenWindow', screenNumber, []);
 
 %turn on psychtoolbox sound
 pahandle = initBeep();
@@ -168,6 +169,10 @@ set(s, 'Terminator', 'CR/LF');
 set(s, 'ReadAsyncMode', 'continuous');
 fopen(s);
 
+%play welcome instructions
+[y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
+sound(y,Fs);
+
 %---------- EYELINK ------------
 % Provide Eyelink with details about the graphics environment
 % and perform some initializations. The information is returned
@@ -180,16 +185,15 @@ ListenChar(2);
 % ----------------
 % EYELINK DUMMY MODE
 %you can init(ialize) in dummy mode when eyelink is not available
-EyelinkInit(1,1)
+%EyelinkInit(1,1)
 %-----------------
 
 %-------------------
 % EYELINK FOR REAL MODE
-
-%if ~EyelinkInit(0, 1)
-%fprintf('Eyelink Init aborted.\n');
-%error('eyelink initialization failed.')
-%end
+if ~EyelinkInit(0, 1)
+    fprintf('Eyelink Init aborted.\n');
+    error('eyelink initialization failed.')
+end
 
 %-------------------
 
@@ -198,10 +202,6 @@ fprintf('Running experiment on a ''%s'' tracker.\n', vs );
 
 % make sure that we get gaze data from the Eyelink
 Eyelink('Command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
-
-%play welcome instructions
-[y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
-sound(y,Fs);
 
 % STEP 4
 % Calibrate the eye tracker
