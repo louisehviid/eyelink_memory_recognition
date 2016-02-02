@@ -44,7 +44,7 @@ PsychDefaultSetup(2);
 screens=Screen('Screens');
 screenNumber=max(screens);
 Screen('Preference', 'SkipSyncTests', 1);
-Framerate = Screen('FrameRate', screens);
+%Framerate = Screen('FrameRate', screens);
 
 %small test screen
 %[w,rect] = Screen('OpenWindow', screenNumber, [0 0 0], [0 0 640 480]); %open a window, on your screen that is black (R0,G0,B0) and 1024x768. The upper left hand corner will be pt 0,0 and lower right will be 1024,768
