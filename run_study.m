@@ -298,11 +298,11 @@ Screen('FillRect', w, black);
 Screen('Flip', w);
 
 %Play the instuctions
-[y,Fs] = audioread([audioInstructionsFolder 'Inward_atten.aiff']);
+[y,Fs] = audioread([audioInstructionsFolder 'breath.aiff']);
 sound(y,Fs);
 
 %Wait for length of instructions.
-WaitSecs(12)
+WaitSecs(15)
 
 % -------------------
 % START EDF recording
@@ -352,7 +352,85 @@ if status > 0
     fprintf('ReceiveFile status %d\n', status);
 end
 if 2==exist(edfFile, 'file')
-    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'red_dot', 'edf') ];
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'breath', 'edf') ];
+    [status, message] = movefile(edfFile, moveFileTo);
+    if 1==status
+        error(message);
+    else
+        fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+    end
+end
+
+
+%Display a grey screen.
+Screen('FillRect', w, gray);
+Screen('Flip', w);
+
+
+%--- START Pupil Noise Inward Attention Test.
+black = [0 0 0]; %defining the color black in rgb
+white = [255 255 255]; %defining the color white in rgb
+
+%Make the screen black
+Screen('FillRect', w, black);
+Screen('Flip', w);
+
+%Play the instuctions
+[y,Fs] = audioread([audioInstructionsFolder 'Inward_atten.aiff']);
+sound(y,Fs);
+
+%Wait for length of instructions.
+WaitSecs(18)
+
+% -------------------
+% START EDF recording
+% -------------------
+% open file to record data to
+disp('opening demo file')
+edfFile='lh_temp.edf';
+Eyelink('Openfile', edfFile);
+% start recording eye position
+disp('start recording')
+Eyelink('StartRecording');
+
+% record a few samples before we actually start displaying
+WaitSecs(0.1);
+
+%Display the red dot for 10 seconds
+%dotColor = [1 0 0];
+%dotSizePix = 60;
+%[xCenter, yCenter] = RectCenter(rect)
+%Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+%Screen('DrawDots', w, [xCenter yCenter], dotSizePix, dotColor, [], 1);
+%Screen('DrawDots', w, [xCenter yCenter], 10, [1 1 1], [], 1);
+%Screen('Flip', w);
+%WaitSecs(6);
+ 
+[CX,CY] = RectCenter(rect);
+
+DotSize = 50;
+DotSizeSmall = DotSize/5;
+
+Screen(w, 'FillOval', [255 0 0], [CX-DotSize/2 CY-DotSize/2 CX+DotSize/2 CY+DotSize/2]); %and put a fixation dot in the center of the screen. 
+Screen(w, 'FillOval', white, [CX-DotSizeSmall/2 CY-DotSizeSmall/2 CX+DotSizeSmall/2 CY+DotSizeSmall/2]); %and put a fixation dot in the center of the screen. 
+Screen('Flip', w);
+WaitSecs(20);
+
+%Stop Eyetracker recording.
+%Save recording to seperate file.
+% -------------------
+% STOP EDF recording
+% -------------------
+Eyelink('StopRecording');
+Eyelink('CloseFile');
+
+fprintf('Receiving data file ''%s''\n', edfFile );
+status=Eyelink('ReceiveFile');
+if status > 0
+    fprintf('ReceiveFile status %d\n', status);
+end
+if 2==exist(edfFile, 'file')
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'memory', 'edf') ];
     [status, message] = movefile(edfFile, moveFileTo);
     if 1==status
         error(message);
