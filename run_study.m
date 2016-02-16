@@ -172,6 +172,7 @@ fopen(s);
 %play welcome instructions
 [y,Fs] = audioread([audioInstructionsFolder 'Welcome.aiff']);
 sound(y,Fs);
+WaitSecs(length(y)/Fs);
 
 %---------- EYELINK ------------
 % Provide Eyelink with details about the graphics environment
@@ -212,7 +213,73 @@ EyelinkDoTrackerSetup(el);
 disp('do drift correction')
 EyelinkDoDriftCorrection(el);
 
-%--- START Pupil Noise Test.
+
+%--- START BASELINE TEST.
+%BLACK = [0 0 0]; %defining the color black in rgb
+%gray = [0.5 0.5 0.5]; %defining the color white in rgb
+
+%Make the screen gray
+Screen('FillRect', w, gray);
+Screen('Flip', w);
+
+%Play the instuctions
+[y,Fs] = audioread([audioInstructionsFolder 'baseline.aiff']);
+sound(y,Fs);
+WaitSecs(length(y)/Fs);
+
+% -------------------
+% START EDF recording
+% -------------------
+% open file to record data to
+disp('opening demo file')
+edfFile='lh_temp.edf';
+Eyelink('Openfile', edfFile);
+% start recording eye position
+disp('start recording')
+Eyelink('StartRecording');
+
+% record a few samples before we actually start displaying
+WaitSecs(0.1);
+        
+%Display the Fixation point
+disp('Fixation Point');
+[X,Y] = RectCenter(rect);
+FixCross = [X-1,Y-40,X+1,Y+40;X-40,Y-1,X+40,Y+1];
+Screen('FillRect', w, gray)
+Screen('FillRect', w, BLACK, FixCross');
+Screen('Flip', w);
+WaitSecs(3);
+
+%Stop Eyetracker recording.
+%Save recording to seperate file.
+% -------------------
+% STOP EDF recording
+% -------------------
+Eyelink('StopRecording');
+Eyelink('CloseFile');
+
+fprintf('Receiving data file ''%s''\n', edfFile );
+status=Eyelink('ReceiveFile');
+if status > 0
+    fprintf('ReceiveFile status %d\n', status);
+end
+if 2==exist(edfFile, 'file')
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'baseline', 'edf') ];
+    [status, message] = movefile(edfFile, moveFileTo);
+    if 1==status
+        error(message);
+    else
+        fprintf('Data file ''%s'' can be found in ''%s''\n', moveFileTo, pwd );
+    end
+end
+
+
+%Display a grey screen.
+Screen('FillRect', w, gray);
+Screen('Flip', w);
+
+
+%--- START PUPIL NOISE.
 black = [0 0 0]; %defining the color black in rgb
 white = [255 255 255]; %defining the color white in rgb
 
@@ -223,9 +290,7 @@ Screen('Flip', w);
 %Play the instuctions
 [y,Fs] = audioread([audioInstructionsFolder 'Fixation_red.aiff']);
 sound(y,Fs);
-
-%Wait for length of instructions.
-WaitSecs(7)
+WaitSecs(length(y)/Fs);
 
 % -------------------
 % START EDF recording
@@ -289,6 +354,7 @@ end
 Screen('FillRect', w, gray);
 Screen('Flip', w);
 
+
 %--- START Pupil Noise Inward Attention Test.
 black = [0 0 0]; %defining the color black in rgb
 white = [255 255 255]; %defining the color white in rgb
@@ -298,11 +364,12 @@ Screen('FillRect', w, black);
 Screen('Flip', w);
 
 %Play the instuctions
-[y,Fs] = audioread([audioInstructionsFolder 'Inward_atten.aiff']);
+[y,Fs] = audioread([audioInstructionsFolder 'breath.aiff']);
 sound(y,Fs);
+WaitSecs(length(y)/Fs);
 
 %Wait for length of instructions.
-WaitSecs(12)
+%WaitSecs(15)
 
 % -------------------
 % START EDF recording
@@ -336,7 +403,8 @@ DotSizeSmall = DotSize/5;
 Screen(w, 'FillOval', [255 0 0], [CX-DotSize/2 CY-DotSize/2 CX+DotSize/2 CY+DotSize/2]); %and put a fixation dot in the center of the screen. 
 Screen(w, 'FillOval', white, [CX-DotSizeSmall/2 CY-DotSizeSmall/2 CX+DotSizeSmall/2 CY+DotSizeSmall/2]); %and put a fixation dot in the center of the screen. 
 Screen('Flip', w);
-WaitSecs(20);
+
+WaitSecs(8);
 
 %Stop Eyetracker recording.
 %Save recording to seperate file.
@@ -352,7 +420,7 @@ if status > 0
     fprintf('ReceiveFile status %d\n', status);
 end
 if 2==exist(edfFile, 'file')
-    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'red_dot', 'edf') ];
+    moveFileTo = [edfFolder resultFilePrefix sprintf('_%i_%s.%s', subId, 'breath', 'edf') ];
     [status, message] = movefile(edfFile, moveFileTo);
     if 1==status
         error(message);
@@ -376,12 +444,15 @@ WaitSecs(3);
 Screen('BlendFunction', w, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
 
 %START PHASES
+
 for phaseNum=1:length(phaseFolders)
     
     %if the folder is a "test" folder, we do recalibartion flow
     if (strfind(phaseFolders{phaseNum}, 'test') > 1) == 1
+        WaitSecs(4);
         [y,Fs] = audioread(calibrationInstructions{phaseNum});
         sound(y,Fs);
+        WaitSecs(length(y)/Fs);
         
         disp('about to do tracker setup')
         EyelinkDoTrackerSetup(el);
@@ -393,6 +464,7 @@ for phaseNum=1:length(phaseFolders)
     %play phase audio instructions
     [y,Fs] = audioread(phaseAudioInstructions{phaseNum});
     sound(y,Fs); 
+    WaitSecs(length(y)/Fs);
     
     %load the trials (stims) for the phase
     thisPhaseFilename = [phaseFolders{phaseNum} trialListFilename];
@@ -420,14 +492,24 @@ for phaseNum=1:length(phaseFolders)
     Screen('FillRect', w, gray)
     Screen('Flip', w)
     
+    
+    
     % START TRIALS
     % For development we loop over 2 trails,
     % for full study, replace "2" with "length(trialFilenames)"
-    for trialNum=1:length(trialFilenames)
+    for trialNum=1:2 %length(trialFilenames)
         
         %Hold The Grey Screen before showing fixation
-        WaitSecs(2.0);
+        WaitSecs(5.0);
         
+        %Play audio in-trial instructions
+         if (phaseNum ~= 5)
+            [y,Fs] = audioread(trialInstructions{phaseNum});
+            sound(y,Fs);
+            WaitSecs(length(y)/Fs);
+         end
+        
+            
         % -------------------
         % START EDF recording
         % -------------------
@@ -436,6 +518,7 @@ for phaseNum=1:length(phaseFolders)
         disp('opening demo file')
         edfFile='lh_temp.edf';
         Eyelink('Openfile', edfFile);
+        
         % start recording eye position
         disp('start recording')
         Eyelink('StartRecording');
@@ -451,9 +534,9 @@ for phaseNum=1:length(phaseFolders)
         Screen('FillRect', w, BLACK, FixCross');
         
         %wake up the participant before displaying fixation
-        if (phaseNum ~= 5)
-            playBeep(pahandle);
-        end
+        %if (phaseNum ~= 5)
+        playBeep(pahandle);
+        %end
         
         %%%%
         Screen('Flip', w);
@@ -482,12 +565,13 @@ for phaseNum=1:length(phaseFolders)
         % and record stimulus onset time in 'startTime':
         [VBLTimestamp, startTime]=Screen('Flip', w);
         Eyelink('Message', 'STIM_ONSET');
-        %disp(startTime);
         
+        %disp(startTime);
         if (phaseNum ~= 5)
             %play trial Instructions
-            [y,Fs] = audioread(trialInstructions{phaseNum});
-            sound(y,Fs);
+            %[y,Fs] = audioread(trialInstructions{phaseNum});
+            %sound(y,Fs);
+            %WaitSecs(length(y)/Fs);
             
             %record participant input, either: Button1, Button2, ''
             disp('showing image, waiting for participant, or 3 seconds');
@@ -498,7 +582,7 @@ for phaseNum=1:length(phaseFolders)
             disp('showing illusion for fixed time');
             WaitSecs(ILLUSION_TIMEOUT);
         end
-            
+           
         %Display the grey screen
         disp('Show Grey Screen');
         Screen('FillRect', w, gray); % fill the screen with gray
@@ -548,6 +632,7 @@ for phaseNum=1:length(phaseFolders)
         % -------------------
         % STOP EDF recording
         % -------------------
+        
         Eyelink('StopRecording');
         Eyelink('CloseFile');
 
@@ -566,11 +651,14 @@ for phaseNum=1:length(phaseFolders)
             end
         end
     end
+    
 end
+   
 
 %play End message
 [y,Fs] = audioread([audioInstructionsFolder 'end2.aiff']);
 sound(y, Fs);
+WaitSecs(length(y)/Fs);
 
 % CLEANUP
 Eyelink('Shutdown');
