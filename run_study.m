@@ -368,9 +368,6 @@ Screen('Flip', w);
 sound(y,Fs);
 WaitSecs(length(y)/Fs);
 
-%Wait for length of instructions.
-%WaitSecs(15)
-
 % -------------------
 % START EDF recording
 % -------------------
